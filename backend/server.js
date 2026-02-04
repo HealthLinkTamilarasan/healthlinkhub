@@ -21,8 +21,13 @@ app.use(cors({
     "http://localhost:5173",
     "https://healthlinkhub.netlify.app"
   ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
+
+// IMPORTANT: allow preflight
+app.options("*", cors());
 
 
 app.use(express.json());
