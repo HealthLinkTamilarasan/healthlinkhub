@@ -1,0 +1,45 @@
+# =====================
+# Environment variables
+# =====================
+.env
+.env.*
+
+# =====================
+# Dependencies
+# =====================
+**/node_modules/
+
+# =====================
+# Build outputs
+# =====================
+**/dist/
+**/build/
+**/.next/
+**/out/
+
+# =====================
+# Logs
+# =====================
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# =====================
+# OS / Editor
+# =====================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =====================
+# Tests & coverage
+# =====================
+coverage/
+
+# =====================
+# Backend runtime
+# =====================
+backend/uploads/
+backend/tmp/
+backend/cache/

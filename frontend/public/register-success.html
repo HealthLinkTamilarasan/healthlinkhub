@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Successful - HealthLink Hub</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f4f9ff;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            max-width: 450px;
+            width: 100%;
+            padding: 3rem 2rem;
+            text-align: center;
+            border: none;
+        }
+
+        .icon-circle {
+            width: 80px;
+            height: 80px;
+            background-color: #d1fae5;
+            /* Light green */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .bi-check-lg {
+            font-size: 3rem;
+            color: #10b981;
+            /* Dark green */
+            -webkit-text-stroke: 1px;
+        }
+
+        h2 {
+            color: #1f2937;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+        }
+
+        p.text-muted {
+            color: #6c757d !important;
+            margin-bottom: 2rem;
+        }
+
+        .id-box {
+            background-color: #ecf0f9;
+            /* Very light blue/gray */
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .id-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .patient-id {
+            color: #0d6efd;
+            /* Bootstrap Primary Blue */
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .btn-dashboard {
+            background-color: #0d6efd;
+            border: none;
+            border-radius: 8px;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .btn-dashboard:hover {
+            background-color: #0b5ed7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container px-3">
+        <div class="success-card mx-auto">
+            <div class="icon-circle">
+                <i class="bi bi-check-lg"></i>
+            </div>
+
+            <h2>Registration Successful!</h2>
+            <p class="text-muted">Your account has been created successfully.</p>
+
+            <div class="id-box">
+                <div class="id-label">Your Patient ID</div>
+                <div class="patient-id" id="displayId">Loading...</div>
+            </div>
+
+            <button class="btn btn-primary w-100 btn-dashboard" onclick="goToDashboard()">
+                Go to Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // extract patientId from URL parameters
+        window.onload = function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const patientId = urlParams.get('patientId');
+
+            const displayElement = document.getElementById('displayId');
+
+            if (patientId) {
+                displayElement.textContent = patientId;
+            } else {
+                displayElement.textContent = 'Not Found';
+                displayElement.style.color = '#dc3545'; // Red for error
+            }
+        };
+
+        function goToDashboard() {
+            // Redirect to dashboard route (Protected Route will handle auth check)
+            window.location.href = '/dashboard';
+        }
+    </script>
+
+</body>
+
+</html>
