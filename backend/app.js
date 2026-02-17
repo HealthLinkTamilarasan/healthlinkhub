@@ -14,28 +14,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
+import cors from "cors";
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://healthlinkhub.netlify.app",
+];
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:5173",
-        "https://healthlinkhub.netlify.app",
-      ];
-
-      // allow requests with no origin (like Postman)
       if (!origin) return callback(null, true);
-
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
+        callback(null, true);
       } else {
-        return callback(new Error("Not allowed by CORS"));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// 🔥 VERY IMPORTANT: handle preflight manually
+app.options("*", cors());
 
 
 app.use(express.json());
