@@ -12,3 +12,5 @@ const connectDB = async () => {
 };
 
 export default connectDB;
+
+// this is written in the quGenerated branch to Check the Branch"
