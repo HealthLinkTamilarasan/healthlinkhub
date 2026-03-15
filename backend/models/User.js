@@ -33,6 +33,9 @@ const userSchema = new mongoose.Schema({
         type: String, // System generated: PT842723, DOC..., etc.
         unique: true,
     },
+    patientId: {
+        type: String, // Specifically for Patient ID format PAT-XXXX
+    },
     // Role-specific fields
     specialization: String, // Doctor
     hospitalName: String, // Doctor

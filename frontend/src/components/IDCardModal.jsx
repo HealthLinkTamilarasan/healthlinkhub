@@ -10,9 +10,9 @@ const IDCardModal = ({ user, onClose }) => {
     // Wait for valid profile fetch
     if (!user) return null;
 
-    const patId = user.roleId || '—';
+    const patId = user.patientId || user.roleId || '—';
     const cleanId = patId.replace(/^(DOC-|LAB-|PAT-)/i, '');
-    const qrData = `HLH-PAT-${cleanId}`;
+    const qrData = `PAT-${cleanId}`;
 
     const type = {
         color: '#16A34A',

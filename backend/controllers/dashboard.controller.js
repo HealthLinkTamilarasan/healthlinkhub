@@ -10,7 +10,7 @@ const findPatientById = async (id) => {
     let patient = await User.findById(id).catch(() => null);
     if (!patient) {
         patient = await User.findOne({
-            $or: [{ roleId: id }, { userId: id }]
+            $or: [{ patientId: id }, { roleId: id }, { userId: id }]
         });
     }
     return patient;
@@ -37,8 +37,10 @@ export const uploadFile = async (req, res) => {
 // @access  Private
 export const validatePatient = async (req, res) => {
     try {
+        console.log("Searching patient:", req.params.id);
         const patient = await findPatientById(req.params.id);
         if (!patient || patient.role !== 'patient') {
+            console.log("Patient not found for ID:", req.params.id);
             return res.status(404).json({ message: 'Patient not found' });
         }
         res.json({
@@ -90,8 +92,10 @@ export const validateStaff = async (req, res) => {
 // @access  Private (Lab/Pharmacist)
 export const getPatientDataForStaff = async (req, res) => {
     try {
+        console.log("Searching patient:", req.params.id);
         const patient = await findPatientById(req.params.id);
         if (!patient) {
+            console.log("Patient not found for ID:", req.params.id);
             return res.status(404).json({ message: 'Patient not found' });
         }
 
