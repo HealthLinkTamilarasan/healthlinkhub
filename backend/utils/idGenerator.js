@@ -6,7 +6,8 @@ const generateId = async (role) => {
         case 'patient': prefix = 'PAT'; break;
         case 'doctor': prefix = 'DOC'; break;
         case 'labTechnician': prefix = 'LAB'; break;
-        case 'pharmacist': prefix = 'PHAR'; break;
+        case 'pharmacist': prefix = 'PHM'; break;
+        case 'emergencyTeam': prefix = 'EMG'; break;
         default: prefix = 'USR';
     }
 

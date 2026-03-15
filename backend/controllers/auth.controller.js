@@ -14,7 +14,12 @@ const generateToken = (id, role, roleId, userId) => {
 // @access  Public
 export const registerUser = async (req, res) => {
     try {
-        const { fullName, email, userId, password, phone, role, ...roleData } = req.body;
+        const { fullName, email, userId, password, phone, role, confirmPassword, ...roleData } = req.body;
+
+        // Validate required fields
+        if (!fullName || !email || !userId || !password || !role) {
+            return res.status(400).json({ message: 'Please fill in all required fields (fullName, email, userId, password, role)' });
+        }
 
         // Check if email exists
         const emailExists = await User.findOne({ email });
@@ -23,11 +28,9 @@ export const registerUser = async (req, res) => {
         }
 
         // Check if userId exists
-        if (userId) {
-            const userIdExists = await User.findOne({ userId });
-            if (userIdExists) {
-                return res.status(400).json({ message: 'User ID already exists' });
-            }
+        const userIdExists = await User.findOne({ userId });
+        if (userIdExists) {
+            return res.status(400).json({ message: 'User ID already exists' });
         }
 
         // Generate System ID (Patient ID -> roleId)
@@ -46,19 +49,30 @@ export const registerUser = async (req, res) => {
         });
 
         if (user) {
+            const userObj = user.toObject();
+            delete userObj.password;
             res.status(201).json({
-                _id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                userId: user.userId,
-                role: user.role,
-                roleId: user.roleId,
+                ...userObj,
                 token: generateToken(user._id, user.role, user.roleId, user.userId),
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });
         }
     } catch (error) {
+        console.error('Registration error:', error);
+
+        // Handle Mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(e => e.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
+
+        // Handle duplicate key error (race condition)
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            return res.status(400).json({ message: `${field} already exists` });
+        }
+
         res.status(500).json({ message: error.message });
     }
 };
@@ -70,10 +84,9 @@ export const loginUser = async (req, res) => {
     try {
         const { identifier, password, role } = req.body;
 
-        // 1. Search user by userId OR email (Strictly these two)
-        // We do NOT use roleId (PatientID) for login as per requirements.
+        // 1. Search user by userId, email, OR roleId (Patient ID)
         const user = await User.findOne({
-            $or: [{ email: identifier }, { userId: identifier }]
+            $or: [{ email: identifier }, { userId: identifier }, { roleId: identifier }]
         });
 
         // 2. If user not found
@@ -98,14 +111,11 @@ export const loginUser = async (req, res) => {
         // Since we explicitly filtered by email/userId fields, if the user entered their Patient ID and it's NOT their userId, the initial findOne would fail (User not found).
         // So the logic holds. But just in case userId == roleId (unlikely but possible if user sets it), we proceed.
 
-        // Return Success
+        // Return Success — include ALL user fields so frontend has full data
+        const userObj = user.toObject();
+        delete userObj.password;
         res.json({
-            _id: user._id,
-            fullName: user.fullName,
-            email: user.email,
-            userId: user.userId,
-            role: user.role,
-            roleId: user.roleId,
+            ...userObj,
             token: generateToken(user._id, user.role, user.roleId, user.userId),
         });
 

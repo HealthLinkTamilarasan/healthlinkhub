@@ -100,6 +100,7 @@ const Login = () => {
                                     <option value="doctor">Doctor</option>
                                     <option value="labTechnician">Lab Technician</option>
                                     <option value="pharmacist">Pharmacist</option>
+                                    <option value="emergencyTeam">Emergency Team</option>
                                 </select>
                             </div>
 

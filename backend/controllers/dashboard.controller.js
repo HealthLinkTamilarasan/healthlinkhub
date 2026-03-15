@@ -95,10 +95,10 @@ export const getPatientDataForStaff = async (req, res) => {
             return res.status(404).json({ message: 'Patient not found' });
         }
 
-        const prescriptions = await Prescription.find({ patientId: patient._id })
+        const prescriptions = await Prescription.find({ patientId: patient._id, status: 'Active' })
             .populate('doctorId', 'fullName')
             .sort({ createdAt: -1 })
-            .limit(5);
+            .limit(10);
         const labReports = await LabReport.find({ patientId: patient._id })
             .sort({ createdAt: -1 })
             .limit(5);
@@ -135,13 +135,15 @@ export const getPatientDashboard = async (req, res) => {
         const labReports = await LabReport.find({ patientId }).populate('labId', 'labName fullName').sort({ createdAt: -1 });
         const vitals = await Vitals.findOne({ patientId }).sort({ createdAt: -1 });
 
-        // Fetch completed requests (Manual Medicine/Lab Reports)
         const manualRequests = await Request.find({
             patientId,
             status: 'Completed'
         }).populate('doctorId', 'fullName').populate('targetUserId', 'fullName').sort({ completedAt: -1 });
 
+        const patient = await User.findById(patientId);
+
         res.json({
+            patient,
             appointments,
             prescriptions,
             labReports,
@@ -285,15 +287,29 @@ export const acceptRequest = async (req, res) => {
 // @access  Private (Lab/Pharmacist)
 export const completeRequest = async (req, res) => {
     try {
-        const request = await Request.findById(req.params.id);
+        const request = await Request.findById(req.params.id).populate('patientId');
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });
+        }
+
+        if (request.status === 'Completed') {
+            return res.status(400).json({ message: 'This request has already been completed.' });
         }
 
         request.status = 'Completed';
         request.completedAt = new Date();
         request.completedBy = req.user._id;
         await request.save();
+
+        // If this is a medicine request, mark the patient's latest Active prescription as Completed
+        if (request.requestType === 'Medicine' && request.patientId) {
+            const patientObjId = request.patientId._id || request.patientId;
+            const latestRx = await Prescription.findOne({ patientId: patientObjId, status: 'Active' }).sort({ createdAt: -1 });
+            if (latestRx) {
+                latestRx.status = 'Completed';
+                await latestRx.save();
+            }
+        }
 
         res.json({ message: 'Request completed successfully', request });
     } catch (error) {
@@ -354,7 +370,7 @@ export const createPrescription = async (req, res) => {
 // @access  Private (Doctor)
 export const addVitals = async (req, res) => {
     try {
-        const { patientId, bloodPressure, sugarLevel, heartRate, weight, temperature, notes } = req.body;
+        const { patientId, bloodPressure, sugarLevel, heartRate, weight, height, bmi, spo2, temperature, notes } = req.body;
 
         const targetPatient = await findPatientById(patientId);
         if (!targetPatient) {
@@ -368,6 +384,9 @@ export const addVitals = async (req, res) => {
             sugarLevel,
             heartRate,
             weight,
+            height,
+            bmi,
+            spo2,
             temperature,
             notes
         });
@@ -483,7 +502,14 @@ export const manualMedicineIssue = async (req, res) => {
 
         // If prescriptionId is valid, mark it as completed/delivered
         if (prescriptionId) {
-            await Prescription.findByIdAndUpdate(prescriptionId, { status: 'Completed' });
+            const rx = await Prescription.findById(prescriptionId);
+            if (rx && rx.status === 'Completed') {
+                return res.status(400).json({ message: 'Medicine already delivered for this prescription.' });
+            }
+            if (rx) {
+                rx.status = 'Completed';
+                await rx.save();
+            }
         }
 
         // Create a self-completed request to track stat and visibility
@@ -543,6 +569,151 @@ export const manualLabReportIssue = async (req, res) => {
 
         res.status(201).json(report);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update User Profile
+// @route   PUT /api/dashboard/patient/profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.fullName = req.body.fullName || user.fullName;
+        user.bloodGroup = req.body.bloodGroup || user.bloodGroup;
+        user.address = req.body.address || user.address;
+        user.phone = req.body.phone || user.phone;
+        if (req.body.email) user.email = req.body.email;
+
+        // Custom fields inside User model
+        if (req.body.dateOfBirth) user.dateOfBirth = req.body.dateOfBirth;
+        if (req.body.profilePhoto !== undefined) user.profilePhoto = req.body.profilePhoto;
+        if (req.body.emergencyName || req.body.emergencyRelation || req.body.emergencyPhone || req.body.emergencyAddress) {
+            user.emergencyContact = {
+                name: req.body.emergencyName || user.emergencyContact?.name,
+                relation: req.body.emergencyRelation || user.emergencyContact?.relation,
+                phone: req.body.emergencyPhone || user.emergencyContact?.phone,
+                address: req.body.emergencyAddress || user.emergencyContact?.address,
+            };
+            user.markModified('emergencyContact');
+        }
+
+        await user.save();
+        res.json({ message: 'Profile updated successfully', user });
+    } catch (error) {
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            return res.status(400).json({ message: 'Email already registered.' });
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update Password
+// @route   PUT /api/dashboard/patient/password
+// @access  Private
+export const updatePassword = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const { currentPassword, newPassword } = req.body;
+        const isMatch = await user.matchPassword(currentPassword);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Incorrect current password' });
+        }
+
+        user.password = newPassword;
+        await user.save();
+        res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update Doctor Profile
+// @route   PUT /api/dashboard/doctor/profile
+// @access  Private (Doctor)
+export const updateDoctorProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.fullName = req.body.fullName || user.fullName;
+        user.specialization = req.body.specialization || user.specialization;
+        user.department = req.body.department || user.department;
+        user.experience = req.body.experience !== undefined ? req.body.experience : user.experience;
+        user.phone = req.body.phone || user.phone;
+        user.email = req.body.email || user.email;
+        user.medicalLicenseNumber = req.body.medicalLicenseNumber || user.medicalLicenseNumber;
+        user.hospitalName = req.body.hospitalName || user.hospitalName;
+        user.address = req.body.address || user.address;
+        if (req.body.profilePhoto !== undefined) user.profilePhoto = req.body.profilePhoto;
+
+        await user.save();
+        res.json({ message: 'Doctor profile updated successfully', user });
+    } catch (error) {
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            return res.status(400).json({ message: 'Email address already exists.' });
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update Lab Technician Profile
+// @route   PUT /api/dashboard/lab/profile
+// @access  Private (Lab Technician)
+export const updateLabProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.fullName = req.body.fullName || user.fullName;
+        user.labName = req.body.labName || user.labName;
+        user.phone = req.body.phone || user.phone;
+        user.email = req.body.email || user.email;
+        user.address = req.body.address || user.address;
+        
+        if (req.body.profilePhoto !== undefined) {
+            user.profilePhoto = req.body.profilePhoto;
+        }
+
+        await user.save();
+        res.json({ message: 'Lab profile updated successfully', user });
+    } catch (error) {
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            return res.status(400).json({ message: 'Email address already exists.' });
+        }
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update Pharmacist Profile
+// @route   PUT /api/dashboard/pharmacy/profile
+// @access  Private (Pharmacist)
+export const updatePharmacistProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.fullName = req.body.fullName || user.fullName;
+        user.pharmacyName = req.body.pharmacyName || user.pharmacyName;
+        user.phone = req.body.phone || user.phone;
+        user.email = req.body.email || user.email;
+        user.address = req.body.address || user.address;
+        
+        if (req.body.profilePhoto !== undefined) {
+            user.profilePhoto = req.body.profilePhoto;
+        }
+
+        await user.save();
+        res.json({ message: 'Pharmacist profile updated successfully', user });
+    } catch (error) {
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
+            return res.status(400).json({ message: 'Email address already exists.' });
+        }
         res.status(500).json({ message: error.message });
     }
 };
