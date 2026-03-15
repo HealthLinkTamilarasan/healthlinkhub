@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['patient', 'doctor', 'labTechnician', 'pharmacist', 'admin'],
+        enum: ['patient', 'doctor', 'labTechnician', 'pharmacist', 'emergencyTeam', 'admin'],
         required: true,
     },
     roleId: {
@@ -37,17 +37,27 @@ const userSchema = new mongoose.Schema({
     specialization: String, // Doctor
     hospitalName: String, // Doctor
     experience: Number, // Doctor
+    department: String, // Doctor
+    medicalLicenseNumber: String, // Doctor
 
+    profilePhoto: String,
+    dateOfBirth: String,
+    address: String,
     bloodGroup: String, // Patient
     allergies: String, // Patient
     chronicDiseases: String, // Patient
-    emergencyContact: String, // Patient
+    emergencyContact: mongoose.Schema.Types.Mixed, // Patient
 
     labName: String, // Lab
     labRegistrationNumber: String, // Lab
 
     pharmacyName: String, // Pharmacist
     licenseNumber: String, // Pharmacist
+
+    // Emergency Team fields
+    teamName: String, // Emergency Team
+    teamNumber: String, // Emergency Team
+    emergencyRole: String, // Emergency Team (Nurse, Doctor, Driver, Assistant) — internal only, NOT login role
 }, { timestamps: true });
 
 // Match user entered password to hashed password in database
@@ -56,9 +66,9 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 };
 
 // Encrypt password using bcrypt
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     if (!this.isModified('password')) {
-        next();
+        return;
     }
 
     const salt = await bcrypt.genSalt(10);

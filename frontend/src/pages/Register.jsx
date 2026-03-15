@@ -4,6 +4,7 @@ import PatientFields from '../components/PatientFields';
 import DoctorFields from '../components/DoctorFields';
 import LabFields from '../components/LabFields';
 import PharmacistFields from '../components/PharmacistFields';
+import EmergencyFields from '../components/EmergencyFields';
 import axiosInstance from '../api/axiosInstance';
 
 const Register = () => {
@@ -42,10 +43,13 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axiosInstance.post('/auth/register', { ...formData, role });
+            // Remove confirmPassword before sending to backend
+            const { confirmPassword, ...dataToSend } = formData;
+            await axiosInstance.post('/auth/register', { ...dataToSend, role });
             window.location.href = '/register-success.html';
-        } catch {
-            setError('Registration failed');
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Registration failed. Please try again.';
+            setError(msg);
         }
     };
 
@@ -182,6 +186,7 @@ const Register = () => {
                                             <option value="doctor">Doctor</option>
                                             <option value="labTechnician">Lab Technician</option>
                                             <option value="pharmacist">Pharmacist</option>
+                                            <option value="emergencyTeam">Emergency Team</option>
                                         </select>
                                     </div>
 
@@ -252,6 +257,7 @@ const Register = () => {
                                     {role === 'doctor' && <DoctorFields formData={formData} handleChange={handleChange} />}
                                     {role === 'labTechnician' && <LabFields formData={formData} handleChange={handleChange} />}
                                     {role === 'pharmacist' && <PharmacistFields formData={formData} handleChange={handleChange} />}
+                                    {role === 'emergencyTeam' && <EmergencyFields formData={formData} handleChange={handleChange} />}
 
                                     <div className="d-flex gap-3 mt-4">
                                         <button

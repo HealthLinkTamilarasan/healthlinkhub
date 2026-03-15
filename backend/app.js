@@ -6,6 +6,9 @@ import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/auth.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
+import patientsRoutes from "./routes/patients.routes.js";
+import emergencyRoutes from "./routes/emergency.routes.js";
 
 const app = express();
 
@@ -19,6 +22,8 @@ const __dirname = path.dirname(__filename);
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
   "https://healthlinkhub.netlify.app",
 ];
 
@@ -47,6 +52,9 @@ app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api", patientsRoutes); // Mount patients & appointments on /api directly
+app.use("/api/emergency", emergencyRoutes);
 
 // ===============================
 // ✅ STATIC UPLOADS

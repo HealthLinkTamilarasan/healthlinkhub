@@ -21,6 +21,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
             case 'doctor': return <Navigate to="/dashboard/doctor" replace />;
             case 'labTechnician': return <Navigate to="/dashboard/lab" replace />;
             case 'pharmacist': return <Navigate to="/dashboard/pharmacy" replace />;
+            case 'emergencyTeam': return <Navigate to="/dashboard/emergency" replace />;
             default: return <Navigate to="/login" replace />;
         }
     }

@@ -11,6 +11,8 @@ export const AuthProvider = ({ children }) => {
         // STRICT AUTH RESTORATION ON LOAD
         const restoreAuth = () => {
             const token = localStorage.getItem('token');
+            const storedUserStr = localStorage.getItem('user_data');
+            
             if (token) {
                 try {
                     const decoded = jwtDecode(token);
@@ -25,7 +27,7 @@ export const AuthProvider = ({ children }) => {
                     }
 
                     // 2. Validate Role Integrity
-                    if (!decoded.role || !['patient', 'doctor', 'labTechnician', 'pharmacist', 'admin'].includes(decoded.role)) {
+                    if (!decoded.role || !['patient', 'doctor', 'labTechnician', 'pharmacist', 'emergencyTeam', 'admin'].includes(decoded.role)) {
                         console.error("Invalid role in token");
                         logout();
                         setLoading(false);
@@ -33,7 +35,8 @@ export const AuthProvider = ({ children }) => {
                     }
 
                     // 3. Restore User State
-                    setUser({ ...decoded, token });
+                    const storedUser = storedUserStr ? JSON.parse(storedUserStr) : {};
+                    setUser({ ...decoded, ...storedUser, token });
 
                 } catch (error) {
                     console.error("Invalid token format", error);
@@ -50,22 +53,39 @@ export const AuthProvider = ({ children }) => {
         // CLEAN STATE BEFORE SETTING NEW
         setUser(null);
         localStorage.removeItem('token');
+        localStorage.removeItem('user_data');
 
         // Set New
         localStorage.setItem('token', userData.token);
+        
         const decoded = jwtDecode(userData.token);
-        setUser({ ...decoded, ...userData });
+        const fullUser = { ...decoded, ...userData };
+        
+        // Save the full user object to localStorage so we don't lose data (like profilePhoto) on refresh
+        localStorage.setItem('user_data', JSON.stringify(fullUser));
+        
+        setUser(fullUser);
     };
 
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('user_data');
         setUser(null);
-        // Optional: clear entire local storage if no persistent settings needed
-        // localStorage.clear();
+    };
+
+    const updateUser = (updatedFields) => {
+        setUser((prevUser) => {
+            const newUser = {
+                ...prevUser,
+                ...updatedFields
+            };
+            localStorage.setItem('user_data', JSON.stringify(newUser));
+            return newUser;
+        });
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
             {children}
         </AuthContext.Provider>
     );

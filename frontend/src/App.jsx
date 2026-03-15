@@ -6,10 +6,12 @@ import PatientDashboard from './pages/dashboards/PatientDashboard';
 import DoctorDashboard from './pages/dashboards/DoctorDashboard';
 import LabDashboard from './pages/dashboards/LabDashboard';
 import PharmacistDashboard from './pages/dashboards/PharmacistDashboard';
+import EmergencyDashboard from './pages/dashboards/EmergencyDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { useContext } from 'react';
 import AuthContext from './context/AuthContext';
+import { ToastContainer } from 'react-toastify';
 
 // Role Redirect Component (Root /dashboard access)
 const DashboardRedirect = () => {
@@ -21,6 +23,7 @@ const DashboardRedirect = () => {
     case 'doctor': return <Navigate to="/dashboard/doctor" />;
     case 'labTechnician': return <Navigate to="/dashboard/lab" />;
     case 'pharmacist': return <Navigate to="/dashboard/pharmacy" />;
+    case 'emergencyTeam': return <Navigate to="/dashboard/emergency" />;
     default: return <Navigate to="/login" />;
   }
 };
@@ -30,36 +33,42 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="min-vh-100 bg-light">
+          <ToastContainer position="top-right" autoClose={3000} />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
             {/* PROTECTED ROUTES WITH STRICT ROLE ISOLATION */}
+            {/* Patient has its own layout (sidebar + header), separate from others */}
+            <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+              <Route path="/dashboard/patient" element={<PatientDashboard />} />
+            </Route>
+
+            {/* Doctor has its own layout (sidebar + header), same style as patient */}
+            <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+              <Route path="/dashboard/doctor" element={<DoctorDashboard />} />
+            </Route>
+
+            {/* Lab Technician has its own layout (sidebar + header), same style as patient/doctor */}
+            <Route element={<ProtectedRoute allowedRoles={['labTechnician']} />}>
+              <Route path="/dashboard/lab" element={<LabDashboard />} />
+            </Route>
+
+            {/* Pharmacist has its own layout (sidebar + header), same style as Lab */}
+            <Route element={<ProtectedRoute allowedRoles={['pharmacist']} />}>
+              <Route path="/dashboard/pharmacy" element={<PharmacistDashboard />} />
+            </Route>
+
+            {/* Emergency Team has its own layout (sidebar + header), same style as others */}
+            <Route element={<ProtectedRoute allowedRoles={['emergencyTeam']} />}>
+              <Route path="/dashboard/emergency" element={<EmergencyDashboard />} />
+            </Route>
+
             <Route path="/dashboard" element={<DashboardLayout />}>
 
-              {/* 1. Root Dashboard Redirect - Wrapped in Layout Route */}
-              <Route element={<ProtectedRoute allowedRoles={['patient', 'doctor', 'labTechnician', 'pharmacist']} />}>
+              {/* 1. Root Dashboard Redirect */}
+              <Route element={<ProtectedRoute allowedRoles={['patient', 'doctor', 'labTechnician', 'pharmacist', 'emergencyTeam']} />}>
                 <Route index element={<DashboardRedirect />} />
-              </Route>
-
-              {/* 2. Patient Dashboard */}
-              <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
-                <Route path="patient" element={<PatientDashboard />} />
-              </Route>
-
-              {/* 3. Doctor Dashboard */}
-              <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
-                <Route path="doctor" element={<DoctorDashboard />} />
-              </Route>
-
-              {/* 4. Lab Dashboard */}
-              <Route element={<ProtectedRoute allowedRoles={['labTechnician']} />}>
-                <Route path="lab" element={<LabDashboard />} />
-              </Route>
-
-              {/* 5. Pharmacist Dashboard */}
-              <Route element={<ProtectedRoute allowedRoles={['pharmacist']} />}>
-                <Route path="pharmacy" element={<PharmacistDashboard />} />
               </Route>
 
             </Route>

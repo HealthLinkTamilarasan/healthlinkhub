@@ -16,13 +16,22 @@ import {
     acceptRequest, // New
     manualMedicineIssue, // New
     manualLabReportIssue,
-    uploadFile
+    uploadFile,
+    updateProfile,
+    updatePassword,
+    updateDoctorProfile,
+    updateLabProfile,
+    updatePharmacistProfile
 } from '../controllers/dashboard.controller.js';
 
 const router = express.Router();
 
 router.get('/patient', protect, getPatientDashboard);
+router.put('/patient/profile', protect, updateProfile);
+router.put('/patient/password', protect, updatePassword);
 router.get('/doctor', protect, getDoctorDashboard);
+router.put('/doctor/profile', protect, updateDoctorProfile);
+router.put('/doctor/password', protect, updatePassword);
 router.post('/prescription', protect, createPrescription);
 router.post('/vitals', protect, addVitals);
 router.post('/request', protect, createRequest);
@@ -42,6 +51,11 @@ router.post('/complete-request/:id', protect, completeRequest);
 router.post('/upload', protect, upload.single('file'), uploadFile);
 
 router.post('/pharmacy/manual-issue', protect, manualMedicineIssue); // New route
+router.put('/pharmacy/profile', protect, updatePharmacistProfile);
+router.put('/pharmacy/password', protect, updatePassword);
+
 router.post('/lab/manual-issue', protect, manualLabReportIssue);
+router.put('/lab/profile', protect, updateLabProfile);
+router.put('/lab/password', protect, updatePassword);
 
 export default router;
